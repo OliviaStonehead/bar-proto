@@ -30,6 +30,10 @@ public class Act1Manager : MonoBehaviour
     public int totalZonasParaBarrer = 2;
     private int zonasBarridas = 0;
 
+    [Header("Estado de Limpieza")]
+    public bool tieneEscoba = false;
+    public bool tieneTrapo = false;
+
     [Header("Items & Pistas Narrativas")]
     public GameObject dibujoMesa;
     public GameObject jugueteOso;

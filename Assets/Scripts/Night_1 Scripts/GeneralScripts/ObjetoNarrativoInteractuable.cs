@@ -1,12 +1,10 @@
 using UnityEngine;
-using System.Collections;
 
 public class ObjetoNarrativoInteractuable : MonoBehaviour, IInteractable
 {
-    [Header("UI & Inspección")]
+    [Header("Configuración de Inspección")]
     [SerializeField] private string textoAccion = "Inspeccionar dibujo";
-    [SerializeField] private GameObject imagenDibujoEnPantalla; // La Image del Canvas que muestra el dibujo centrado
-    [SerializeField] private float tiempoEnPantalla = 3.5f;
+    [SerializeField] private Transform puntoInspeccion; // Un GameObject vacío hijo de la MainCamera
 
     [Header("Lore / Narrativa")]
     [TextArea(3, 5)]
@@ -14,62 +12,33 @@ public class ObjetoNarrativoInteractuable : MonoBehaviour, IInteractable
 
     private bool yaFueTomado = false;
 
-    public bool CanInteract()
+    public bool CanInteract() => !yaFueTomado;
+    public string GetDescription() => textoAccion;
+
+    public void Interact()
+{
+    if (yaFueTomado) return;
+    yaFueTomado = true;
+
+    // 1. Apagar Collider
+    Collider col = GetComponent<Collider>();
+    if (col != null) col.enabled = false;
+
+    // 2. Mover al punto de inspección y orientar de frente a la cámara
+    if (puntoInspeccion != null)
     {
-        return !yaFueTomado;
+        transform.SetParent(puntoInspeccion);
+        transform.localPosition = Vector3.zero;
+        
+        // Aplica la rotación del punto de inspección + offset de 90 grados
+        // Si no queda de frente, podés cambiar Vector3.up por Vector3.right o Vector3.forward
+        transform.localRotation = Quaternion.identity * Quaternion.Euler(90f, 90f, -90f); 
     }
 
-    public string GetDescription()
+    // 3. Iniciar inspección
+    if (Inspector3D.Instance != null)
     {
-        return textoAccion;
+        Inspector3D.Instance.IniciarInspeccion(gameObject, descripcionLore);
     }
-
-   public void Interact()
-    {
-        if (yaFueTomado) return;
-        yaFueTomado = true;
-
-        // 1. Apagamos el Collider para no reinteractuar
-        Collider col = GetComponent<Collider>();
-        if (col != null) col.enabled = false;
-
-        // 2. Apagamos solo la parte visual 3D (Renderer), NO el GameObject
-        Renderer rend = GetComponent<Renderer>();
-        if (rend != null) rend.enabled = false;
-
-        // Desactivamos hijos 3D si los tiene
-        foreach (Transform child in transform)
-        {
-            child.gameObject.SetActive(false);
-        }
-
-        // 3. Lanzamos el diálogo
-        if (Act1Manager.Instance != null)
-        {
-            Act1Manager.Instance.MostrarDialogo(descripcionLore);
-        }
-
-        // 4. Arrancamos la muestra en UI
-        StartCoroutine(SecuenciaSostenerDibujo());
-    }
-
-    private IEnumerator SecuenciaSostenerDibujo()
-    {
-        if (imagenDibujoEnPantalla == null)
-        {
-            Debug.LogError($"[ObjetoNarrativo] Falta asignar 'imagenDibujoEnPantalla' en {gameObject.name}");
-            yield break;
-        }
-
-        // Encender la UI del dibujo
-        imagenDibujoEnPantalla.SetActive(true);
-
-        yield return new WaitForSeconds(tiempoEnPantalla);
-
-        // Ocultar la UI del dibujo
-        imagenDibujoEnPantalla.SetActive(false);
-
-        // RECIÉN ACÁ apagamos el GameObject completo
-        gameObject.SetActive(false);
-    }
+}
 }
