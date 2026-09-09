@@ -77,7 +77,6 @@ public class Act1Manager : MonoBehaviour
 
     [Header("Referencias de Cierre")] 
     public CanvasGroup fadeCanvasGroup; 
-    public TextMeshProUGUI interactionText;
 
     [Header("Indicadores")]
     public GameObject indicadorCervezas;
@@ -89,15 +88,10 @@ public class Act1Manager : MonoBehaviour
     public ItemSO itemVasoVacio;
     public ItemSO itemHoney;
     
-    [Header("Servicio de Cerveza")]
-    public GameObject vasoServicio;
-    public ServicioCervezaVisual servicioCervezaVisual;
-
+    [Header("Estado del Jugador / Mano")]
     public bool tieneObjetoEnMano = false;
-    public bool vasoEnCanilla = false;
-    private bool sirviendoCerveza = false;
 
-    public static Act1Manager Instance {get; private set;}
+    public static Act1Manager Instance { get; private set; }
 
     private void Awake()
     {
@@ -134,7 +128,6 @@ public class Act1Manager : MonoBehaviour
 
     private IEnumerator SecuenciaInicioNoche()
     {
-        // Lógica inicial de la Noche 1 (fades, audios, etc.)
         yield return null;
     }
 
@@ -149,9 +142,7 @@ public class Act1Manager : MonoBehaviour
         ActualizarProgresoObjetivo(); 
     }
 
-    //===========================
     // TAREAS INICIALES
-    //===========================
     public void RegistrarZonaBarrida()
     {
         zonasBarridas++;
@@ -170,20 +161,9 @@ public class Act1Manager : MonoBehaviour
         VerificarFinTareas();
     }
 
-    public void InteractuarDibujo()
-    {
-        MostrarDialogo("Lucas: Un dibujo infantil... sin firma.");
-    }
-
-    public void InteractuarOsoJuguete()
-    {
-        MostrarDialogo("Lucas: ¿Y esto?... Siempre pierde estas cosas; después se lo llevo.");
-    }
-
-    public void InteractuarFotoFamiliar()
-    {
-        MostrarDialogo("Lucas: Mi familia... qué contenta estaba Pili ese día... qué lástima.");
-    }
+    public void InteractuarDibujo() => MostrarDialogo("Lucas: Un dibujo infantil... sin firma.");
+    public void InteractuarOsoJuguete() => MostrarDialogo("Lucas: ¿Y esto?... Siempre pierde estas cosas; después se lo llevo.");
+    public void InteractuarFotoFamiliar() => MostrarDialogo("Lucas: Mi familia... qué contenta estaba Pili ese día... qué lástima.");
 
     private void VerificarFinTareas()
     {
@@ -209,7 +189,6 @@ public class Act1Manager : MonoBehaviour
     IEnumerator SecuenciaTransicionServicio()
     {
         yield return new WaitForSeconds(1f);
-        
         if (sonidoGolpeSuelo != null) sonidoGolpeSuelo.Play();
         yield return new WaitForSeconds(1.5f);
         MostrarDialogo("Lucas: Ufff... Estas cañerías están cada vez peor...");
@@ -232,17 +211,17 @@ public class Act1Manager : MonoBehaviour
         if (musicBar != null && !musicBar.isPlaying) musicBar.Play();
     }
 
-    //===========================
-    // SERVICIO Y DIÁLOGOS
-    //===========================
-    public void RegistrarPedidoMarielaHoney()
+    // SERVICIO
+    public void ObtenerCervezaServida()
     {
-        marielaPidioHoney = true;
-    }
+        tieneObjetoEnMano = true;
 
-    public bool TienePedidoEntregable()
-    {
-        return tieneObjetoEnMano;
+        if (ControladorMano3D.Instance != null && itemCerveza != null)
+        {
+            ControladorMano3D.Instance.EquiparItem(itemCerveza);
+        }
+
+        MostrarDialogo("Lucas: Listo. A llevársela al cliente.");
     }
 
     public void ClienteCompletado()
@@ -261,39 +240,13 @@ public class Act1Manager : MonoBehaviour
         }
     }
 
-    public void ServirCerveza()
+    public void RecogerObjeto(bool esBarra)
     {
-        sirviendoCerveza = true;
         tieneObjetoEnMano = true;
-    }
-
-    public void ColocarVasoEnCanilla()
-    {
-        vasoEnCanilla = true;
-    }
-
-   public void RecogerObjeto()
-{
-    tieneObjetoEnMano = true;
-}
-
-public void RecogerObjeto(bool estado)
-{
-    tieneObjetoEnMano = estado;
-}
-
-public void RecogerObjeto(ItemSO item)
-{
-    tieneObjetoEnMano = true;
-}
-    public void HabilitarTriggerCocinaFinal()
-    {
-        // Método de soporte para triggers de retorno al final del nivel
-    }
-
-    public void EndNight()
-    {
-        FinalizarNoche();
+        if (ControladorMano3D.Instance != null && itemVasoVacio != null)
+        {
+            ControladorMano3D.Instance.EquiparItem(itemVasoVacio);
+        }
     }
 
     public void InteractuarCarlos()
@@ -319,6 +272,52 @@ public void RecogerObjeto(ItemSO item)
             MostrarDialogo("Carlos: Te vas a terminar matando de tanto laburo.");
         }
     }
+
+    public void RegistrarPedidoMarielaHoney()
+    {
+        marielaPidioHoney = true;
+    }
+
+    public bool TienePedidoEntregable(string nombreCliente = "")
+{
+    // 1. Validar que la mano exista y tenga un item activo
+    if (ControladorMano3D.Instance == null || !ControladorMano3D.Instance.TieneManoOcupada())
+        return false;
+
+    ItemSO itemEnMano = ControladorMano3D.Instance.ObtenerItemActual();
+    if (itemEnMano == null) 
+        return false;
+
+    string cliente = string.IsNullOrEmpty(nombreCliente) ? "" : nombreCliente.Trim().ToLower();
+
+    // 2. Carlos (Pide Cerveza)
+    if (cliente == "carlos")
+    {
+        if (!carlosPidioCerveza || itemCerveza == null) return false;
+        
+        // Compara primero por referencia de ScriptableObject y luego por nombre
+        return itemEnMano == itemCerveza || 
+              (!string.IsNullOrEmpty(itemEnMano.nombreItem) && itemEnMano.nombreItem.Equals(itemCerveza.nombreItem, System.StringComparison.OrdinalIgnoreCase));
+    }
+
+    // 3. Mariela (Pide Honey)
+    if (cliente == "mariela")
+    {
+        if (!marielaPidioHoney || itemHoney == null) return false;
+
+        return itemEnMano == itemHoney || 
+              (!string.IsNullOrEmpty(itemEnMano.nombreItem) && itemEnMano.nombreItem.Equals(itemHoney.nombreItem, System.StringComparison.OrdinalIgnoreCase));
+    }
+
+    // 4. Otros Clientes (Cerveza o Whisky)
+    bool esCerveza = itemCerveza != null && (itemEnMano == itemCerveza || 
+        (!string.IsNullOrEmpty(itemEnMano.nombreItem) && itemEnMano.nombreItem.Equals(itemCerveza.nombreItem, System.StringComparison.OrdinalIgnoreCase)));
+        
+    bool esWhisky = itemWhisky != null && (itemEnMano == itemWhisky || 
+        (!string.IsNullOrEmpty(itemEnMano.nombreItem) && itemEnMano.nombreItem.Equals(itemWhisky.nombreItem, System.StringComparison.OrdinalIgnoreCase)));
+
+    return esCerveza || esWhisky;
+}
 
     public void InteractuarCliente2()
     {
@@ -362,9 +361,7 @@ public void RecogerObjeto(ItemSO item)
         }
     }
 
-    //===========================
-    // QUIEBRE DE REALIDAD
-    //===========================
+    // QUIEBRE Y COMBATE
     IEnumerator SecuenciaQuiebreCajita()
     {
         estadoActual = ActoState.Quiebre;
@@ -468,7 +465,6 @@ public void RecogerObjeto(ItemSO item)
     public void EnemigoEliminado()
     {
         enemigosDerrotados++;
-
         if (enemigosDerrotados >= totalEnemigos)
         {
             FinalizarNoche();
@@ -511,9 +507,15 @@ public void RecogerObjeto(ItemSO item)
         SceneManager.LoadScene("Night_2 Scene"); 
     }
 
-    //===========================
-    // SISTEMAS DE SOPORTE
-    //===========================
+    public void HabilitarTriggerCocinaFinal()
+    {
+        if (indicadorDeposito != null)
+        {
+            indicadorDeposito.SetActive(true);
+        }
+    }
+
+    // UTILIDADES
     public void CambiarIluminacion(string estado)
     {
         if (lucesNormales != null) lucesNormales.SetActive(false);
@@ -549,61 +551,36 @@ public void RecogerObjeto(ItemSO item)
 
     public void MostrarDialogo(string mensaje)
     {
-        Debug.Log($"[Act1Manager] MostrarDialogo llamado con mensaje: '{mensaje}'");
-
-        if (textoSubtitulos == null)
-        {
-            Debug.LogError("[Act1Manager] ERROR: 'textosSubtitulos' es NULL en el Inspector!");
-            return;
-        }
-
-        if (canvasGroupDialogo == null)
-        {
-            Debug.LogError("[Act1Manager] ERROR: 'canvasGroupDialogo' es NULL en el Inspector!");
-            return;
-        }
-
-        if (corrutinaActiva != null) 
-        {
-            StopCoroutine(corrutinaActiva);
-        }
+        if (textoSubtitulos == null || canvasGroupDialogo == null) return;
+        if (corrutinaActiva != null) StopCoroutine(corrutinaActiva);
 
         corrutinaActiva = StartCoroutine(SecuenciaDialogo(mensaje));
     }
-        IEnumerator SecuenciaDialogo(string frase)
+
+    IEnumerator SecuenciaDialogo(string frase)
     {
-        // 1. Nos aseguramos de que la pantalla negra del script de parpadeo esté APAGADA mientras leemos
         if (effectoParpadeo != null && effectoParpadeo.pantallaNegra != null)
         {
             effectoParpadeo.pantallaNegra.SetActive(false);
         }
 
-        // 2. Activamos el contenedor de UI de diálogo y reseteamos el alpha
         if (canvasGroupDialogo != null)
         {
-            if (!canvasGroupDialogo.gameObject.activeSelf)
-            {
-                canvasGroupDialogo.gameObject.SetActive(true);
-            }
+            if (!canvasGroupDialogo.gameObject.activeSelf) canvasGroupDialogo.gameObject.SetActive(true);
             canvasGroupDialogo.alpha = 0f;
         }
 
-        if (textoSubtitulos != null)
-        {
-            textoSubtitulos.text = "";
-        }
+        if (textoSubtitulos != null) textoSubtitulos.text = "";
 
         float speedFade = velocidadFade > 0 ? velocidadFade : 2f;
         float speedType = velocidadEscritura > 0 ? velocidadEscritura : 0.03f;
 
-        // 3. Fade In
         while (canvasGroupDialogo != null && canvasGroupDialogo.alpha < 1f)
         {
             canvasGroupDialogo.alpha += Time.deltaTime * speedFade;
             yield return null;
         }      
 
-        // 4. Efecto de tipeo
         if (textoSubtitulos != null)
         {
             foreach (char letra in frase.ToCharArray())
@@ -615,14 +592,12 @@ public void RecogerObjeto(ItemSO item)
 
         yield return new WaitForSeconds(3f);
 
-        // 5. Fade Out
         while (canvasGroupDialogo != null && canvasGroupDialogo.alpha > 0f)
         {
             canvasGroupDialogo.alpha -= Time.deltaTime * (speedFade / 2f);
             yield return null;
         }
 
-    // 6. Ocultamos el panel de diálogo
         if (canvasGroupDialogo != null)
         {
             canvasGroupDialogo.alpha = 0f;
@@ -630,5 +605,10 @@ public void RecogerObjeto(ItemSO item)
         }
 
         corrutinaActiva = null;
+    }
+
+    public void EndNight()
+    {
+        FinalizarNoche();
     }
 }

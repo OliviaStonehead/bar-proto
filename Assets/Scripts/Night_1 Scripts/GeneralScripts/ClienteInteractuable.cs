@@ -122,78 +122,76 @@ public class ClienteInteractuable : MonoBehaviour, IInteractable
         string clienteNormalizado = nombreCliente.Trim().ToLower();
 
         // =========================
-        // MARIELA
-        // =========================
-        if (clienteNormalizado == "mariela")
+    // CARLOS
+    // =========================
+    if (clienteNormalizado == "carlos")
+    {
+        if (!manager.carlosPidioCerveza)
         {
-            // Si por algún motivo Mariela llegó a EsperandoPedido antes de Carlos,
-            // la devolvemos al estado correcto.
-            if (manager.clientesAtendidosTotal < 1)
-            {
-                estadoActual = EstadoCliente.EsperandoAtencion;
-                manager.marielaPidioHoney = false;
-
-                manager.MostrarDialogo("Lucas: Primero debería atender al cliente de la barra.");
-                Debug.Log("[ClienteInteractuable] Estado de Mariela corregido: no podía estar esperando pedido antes de Carlos.");
-                return;
-            }
-
-            // Si todavía no pidió oficialmente la Honey, la hacemos pedir ahora.
-            if (!manager.marielaPidioHoney)
-            {
-                manager.RegistrarPedidoMarielaHoney();
-                estadoActual = EstadoCliente.EsperandoPedido;
-                return;
-            }
-
-            // Si ya pidió, pero Lucas todavía no tiene algo entregable.
-            if (!manager.TienePedidoEntregable())
-            {
-                manager.MostrarDialogo("Lucas: Todavía no tengo lo que me pidió...");
-                return;
-            }
-
-            manager.MostrarDialogo(nombreCliente + ": " + dialogoGracias);
-            estadoActual = EstadoCliente.Atendido;
-
-            if (indicadorVioleta != null)
-            {
-                indicadorVioleta.SetActive(false);
-            }
-
-            manager.ClienteCompletado();
-
-            Debug.Log("[ClienteInteractuable] Mariela atendida.");
+            manager.MostrarDialogo("Carlos: Primero dejame pedirte bien...");
             return;
         }
 
-        // =========================
-        // CARLOS
-        // =========================
-        if (clienteNormalizado == "carlos")
+        // Validación crítica con el Manager
+        if (!manager.TienePedidoEntregable())
         {
-            if (manager.TienePedidoEntregable())
-            {
-                manager.MostrarDialogo(nombreCliente + ": " + dialogoGracias);
-
-                estadoActual = EstadoCliente.Atendido;
-
-                if (indicadorVioleta != null)
-                {
-                    indicadorVioleta.SetActive(false);
-                }
-
-                manager.ClienteCompletado();
-
-                Debug.Log("[ClienteInteractuable] Carlos atendido.");
-            }
-            else
-            {
-                manager.MostrarDialogo("Lucas: Todavía no tengo lo que me pidió...");
-            }
-
+            manager.MostrarDialogo("Lucas: Todavía no tengo lo que me pidió...");
             return;
         }
+
+        // Si pasa la validación, entregamos el pedido
+        manager.MostrarDialogo(nombreCliente + ": " + dialogoGracias);
+        estadoActual = EstadoCliente.Atendido;
+
+        if (indicadorVioleta != null)
+        {
+            indicadorVioleta.SetActive(false);
+        }
+
+        manager.ClienteCompletado();
+        Debug.Log("[ClienteInteractuable] Carlos atendido con éxito.");
+        return;
+    }
+
+    // =========================
+    // MARIELA
+    // =========================
+    if (clienteNormalizado == "mariela")
+    {
+        if (manager.clientesAtendidosTotal < 1)
+        {
+            estadoActual = EstadoCliente.EsperandoAtencion;
+            manager.marielaPidioHoney = false;
+            manager.MostrarDialogo("Lucas: Primero debería atender al cliente de la barra.");
+            return;
+        }
+
+        if (!manager.marielaPidioHoney)
+        {
+            manager.RegistrarPedidoMarielaHoney();
+            estadoActual = EstadoCliente.EsperandoPedido;
+            return;
+        }
+
+        // Validación crítica con el Manager
+        if (!manager.TienePedidoEntregable())
+        {
+            manager.MostrarDialogo("Lucas: Todavía no tengo lo que me pidió...");
+            return;
+        }
+
+        manager.MostrarDialogo(nombreCliente + ": " + dialogoGracias);
+        estadoActual = EstadoCliente.Atendido;
+
+        if (indicadorVioleta != null)
+        {
+            indicadorVioleta.SetActive(false);
+        }
+
+        manager.ClienteCompletado();
+        Debug.Log("[ClienteInteractuable] Mariela atendida con éxito.");
+        return;
+    }
 
         // =========================
         // OTROS CLIENTES
