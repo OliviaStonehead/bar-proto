@@ -1,30 +1,34 @@
+using System.Collections;
 using UnityEngine;
 
 public class ServicioCerveza : MonoBehaviour
 {
-    [Header("Items")]
-    [SerializeField] private ItemSO itemVasoVacio;
-    [SerializeField] private ItemSO itemCerveza;
+    [Header("Scriptable Objects")]
+    public ItemSO ItemVasoVacio;
+    public ItemSO ItemCerveza;
 
-    [Header("Visuales")]
+    [Header("Referencias Visuales")]
     [SerializeField] private GameObject vasoEnCanillaVisual;
     [SerializeField] private ServicioCervezaVisual servicioVisual;
 
-    public bool VasoEnCanilla { get; private set; }
+    [Header("Audio")]
+    [SerializeField] private AudioSource sonidoServirCerveza;
 
-    public ItemSO ItemVasoVacio => itemVasoVacio;
+    private bool vasoEnCanilla = false;
+    private bool sirviendo = false;
+
+    public bool VasoEnCanilla => vasoEnCanilla;
 
     public void ColocarVaso()
     {
-        if (ControladorMano3D.Instance == null)
-            return;
+        if (vasoEnCanilla || sirviendo) return;
 
-        if (ControladorMano3D.Instance.ObtenerItemActual() != itemVasoVacio)
-            return;
+        if (ControladorMano3D.Instance != null)
+        {
+            ControladorMano3D.Instance.VaciarMano();
+        }
 
-        ControladorMano3D.Instance.VaciarMano();
-
-        VasoEnCanilla = true;
+        vasoEnCanilla = true;
 
         if (vasoEnCanillaVisual != null)
             vasoEnCanillaVisual.SetActive(true);
@@ -35,25 +39,42 @@ public class ServicioCerveza : MonoBehaviour
 
     public void Servir()
     {
-        if (!VasoEnCanilla)
-            return;
+        if (!vasoEnCanilla || sirviendo) return;
 
-        if (servicioVisual == null)
-            return;
+        sirviendo = true;
 
-        servicioVisual.Servir(FinalizarServicio);
+        if (sonidoServirCerveza != null)
+        {
+            sonidoServirCerveza.Play();
+        }
+
+        // Delegamos el proceso de servido y animación del chorro al script visual
+        if (servicioVisual != null)
+        {
+            servicioVisual.Servir(FinalizarServido);
+        }
+        else
+        {
+            FinalizarServido();
+        }
     }
 
-    private void FinalizarServicio()
+    private void FinalizarServido()
     {
-        VasoEnCanilla = false;
+        if (sonidoServirCerveza != null && sonidoServirCerveza.isPlaying)
+        {
+            sonidoServirCerveza.Stop();
+        }
 
         if (vasoEnCanillaVisual != null)
             vasoEnCanillaVisual.SetActive(false);
 
-        if (ControladorMano3D.Instance != null)
+        vasoEnCanilla = false;
+        sirviendo = false;
+
+        if (ControladorMano3D.Instance != null && ItemCerveza != null)
         {
-            ControladorMano3D.Instance.EquiparItem(itemCerveza);
+            ControladorMano3D.Instance.EquiparItem(ItemCerveza);
         }
     }
 }
