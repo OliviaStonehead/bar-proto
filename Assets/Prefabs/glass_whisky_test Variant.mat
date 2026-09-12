@@ -13,7 +13,6 @@ Material:
   m_ModifiedSerializedProperties: 2
   m_ValidKeywords:
   - _OCCLUSION
-  - _SURFACE_TYPE_TRANSPARENT
   m_InvalidKeywords:
   - _DISABLE_SSR_TRANSPARENT
   - _ENABLE_FOG_ON_TRANSPARENT
@@ -23,14 +22,13 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap:
     MotionVector: User
-    RenderType: Transparent
+    RenderType: Opaque
   disabledShaderPasses:
   - MOTIONVECTORS
   - TransparentDepthPrepass
   - TransparentDepthPostpass
   - TransparentBackface
   - RayTracingPrepass
-  - DepthOnly
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -38,6 +36,11 @@ Material:
     m_Ints: []
     m_Floats:
     - _BUILTIN_QueueControl: 1
+    - _DstBlend: 0
+    - _DstBlendAlpha: 0
+    - _SrcBlend: 1
+    - _Surface: 0
+    - _ZWrite: 1
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1
